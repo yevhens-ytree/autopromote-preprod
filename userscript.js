@@ -4,7 +4,7 @@
 // @version      0.8
 // @description  Adds a button to trigger a promotion workflow from a GitHub repo page.
 // @author       You
-// @match        https://github.com/*/*
+// @match        https://github.com/y-tree-limited/*/*
 // @grant        GM_xmlhttpRequest
 // ==/UserScript==
 
@@ -17,7 +17,10 @@
 
         if (document.getElementById('promote-button-container')) return;
 
-        const repoName = window.location.pathname.substring(1);
+        const repoNameMatch = window.location.pathname.match(/^\/([^/]+)\/([^/]+)/);
+        const repoName = repoNameMatch ? `${repoNameMatch[1]}/${repoNameMatch[2]}` : '';
+        if (!repoName) return; // Not on a repo page, skip initialization
+
 
         const listItem = document.createElement('li');
         listItem.id = 'promote-button-container';

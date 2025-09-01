@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# --- НАСТРОЙКА ---
+# --- CONFIGURATION ---
 TARGET_DIR="$HOME/bin"
 SERVICE_NAME="com.user.githubtrigger.nodejs"
 LAUNCH_AGENT_DIR="$HOME/Library/LaunchAgents"
 PLIST_FILE="$LAUNCH_AGENT_DIR/$SERVICE_NAME.plist"
-# --- КОНЕЦ НАСТРОЙКИ ---
+# --- END CONFIGURATION ---
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
@@ -20,43 +20,32 @@ print_error() {
     exit 1
 }
 
-# 1. ПРОВЕРКА ТОКЕНА GITHUB
+# 1. GITHUB TOKEN CHECK
 # -----------------------------------------------------------------------------
-print_info "Проверка наличия токена GitHub (GH_TOKEN)..."
+print_info "Checking GitHub token (GH_TOKEN)..."
 if [ -z "$GH_TOKEN" ]; then
-    print_error "Ошибка: Переменная окружения GH_TOKEN не установлена."
-    echo "Пожалуйста, убедитесь, что она экспортирована в вашем .zshrc/.bash_profile,"
-    echo "и вы перезапустили терминал, либо выполните:"
-    echo "export GH_TOKEN=ghp_... перед запуском этого скрипта."
+    print_error "Error: GH_TOKEN environment variable not set."
+    echo "Please ensure it's exported in your .zshrc/.bash_profile,"
+    echo "and you've restarted terminal, or run:"
+    echo "export GH_TOKEN=ghp_... before running this script."
     exit 1
 fi
-print_success "Токен GH_TOKEN найден."
+print_success "GH_TOKEN found."
 
-# 2. КОПИРОВАНИЕ ФАЙЛОВ И НАСТРОЙКА ПРАВ
+# 2. FILE COPYING AND SETUP
 # -----------------------------------------------------------------------------
 mkdir -p "$TARGET_DIR"
 mkdir -p "$LAUNCH_AGENT_DIR"
 
-print_info "Копирование исполняемых файлов в '$TARGET_DIR'..."
-cp -f "$SCRIPT_DIR/local-server.js" "$TARGET_DIR/" || print_error "Не удалось скопировать local-server.js"
-cp -f "$SCRIPT_DIR/promote-preprod.sh" "$TARGET_DIR/" || print_error "Не удалось скопировать promote-preprod.sh"
-# --- ОБНОВЛЕННЫЕ СТРОКИ ---
-cp -f "$SCRIPT_DIR/get-version-info.sh" "$TARGET_DIR/" || print_error "Не удалось скопировать get-version-info.sh"
-# Удаляем старый скрипт, если он есть
-rm -f "$TARGET_DIR/get-preprod-version.sh"
+print_info "Copying Node.js server to '$TARGET_DIR'..."
+cp -f "$SCRIPT_DIR/local-server.js" "$TARGET_DIR/" || print_error "Failed to copy local-server.js"
 
-print_info "Установка прав на выполнение..."
-chmod +x "$TARGET_DIR/promote-preprod.sh" || print_error "Не удалось установить права на promote-preprod.sh."
-# --- ДОБАВЛЕНА СТРОКА ---
-chmod +x "$TARGET_DIR/get-version-info.sh" || print_error "Не удалось установить права на get-version-info.sh."
-
-
-# 3. СОЗДАНИЕ .PLIST ФАЙЛА С АВТОМАТИЧЕСКОЙ ПОДСТАНОВКОЙ ТОКЕНА
+# 3. CREATE .PLIST FILE WITH AUTOMATIC TOKEN SUBSTITUTION
 # -----------------------------------------------------------------------------
-print_info "Создание файла сервиса с вашим токеном..."
+print_info "Creating service file with your token..."
 NODE_PATH=$(which node)
 if [ -z "$NODE_PATH" ]; then
-    print_error "Ошибка: Node.js не найден. Пожалуйста, установите его (brew install node)."
+    print_error "Error: Node.js not found. Please install it (brew install node)."
 fi
 
 cat << EOF > "$PLIST_FILE"
@@ -88,12 +77,12 @@ cat << EOF > "$PLIST_FILE"
 </plist>
 EOF
 
-# 4. ПЕРЕЗАПУСК СЕРВИСА
+# 4. SERVICE RESTART
 # -----------------------------------------------------------------------------
-print_info "Перезапуск сервиса '$SERVICE_NAME'..."
+print_info "Restarting service '$SERVICE_NAME'..."
 launchctl unload "$PLIST_FILE" 2>/dev/null
-launchctl load "$PLIST_FILE" || print_error "Не удалось запустить сервис '$SERVICE_NAME'."
+launchctl load "$PLIST_FILE" || print_error "Failed to start service '$SERVICE_NAME'."
 
-print_success "✅ Деплой и перезапуск сервиса успешно завершены!"
-echo "Ваш токен был автоматически добавлен в конфигурацию сервиса."
+print_success "✅ Deploy and service restart completed successfully!"
+echo "Your token has been automatically added to the service configuration."
 
