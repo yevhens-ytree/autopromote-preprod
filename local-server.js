@@ -124,19 +124,38 @@ const server = http.createServer(async (req, res) => {
 
             // Get current version from YAML file
             let currentVersion = "N/A";
+            const owner = TARGET_REPO.split('/')[0];
+            const repo = TARGET_REPO.split('/')[1];
+
+            // First, try to get version from service-specific app-values.yaml
             try {
-                const owner = TARGET_REPO.split('/')[0];
-                const repo = TARGET_REPO.split('/')[1];
-                const fileData = await githubRequest('GET', `/repos/${owner}/${repo}/contents/${filePath}`);
+                const serviceFilePath = `environments/${ENVIRONMENT}/${serviceName}/app-values.yaml`;
+                const fileData = await githubRequest('GET', `/repos/${owner}/${repo}/contents/${serviceFilePath}`);
 
                 const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
-                const regex = new RegExp(`^\\s*${serviceName}:\\s*(.+)$`, 'm');
+                const regex = new RegExp(`^\\s*tag:\\s*(.+)$`, 'm');
                 const match = content.match(regex);
                 if (match) {
                     currentVersion = match[1].replace(/^v/, '').trim();
+                    console.log(`[SERVER] Found version in ${serviceFilePath}: ${currentVersion}`);
                 }
             } catch (error) {
-                console.log(`[SERVER] Failed to get current version for ${serviceName}: ${error.message}`);
+                console.log(`[SERVER] Service-specific app-values.yaml not found for ${serviceName}: ${error.message}`);
+
+                // Fallback to cm-frontend-server-versions/app-values.yaml
+                try {
+                    const fileData = await githubRequest('GET', `/repos/${owner}/${repo}/contents/${filePath}`);
+
+                    const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
+                    const regex = new RegExp(`^\\s*${serviceName}:\\s*(.+)$`, 'm');
+                    const match = content.match(regex);
+                    if (match) {
+                        currentVersion = match[1].replace(/^v/, '').trim();
+                        console.log(`[SERVER] Found version in ${filePath}: ${currentVersion}`);
+                    }
+                } catch (fallbackError) {
+                    console.log(`[SERVER] Failed to get current version for ${serviceName} from fallback location: ${fallbackError.message}`);
+                }
             }
 
             // Get latest release tag
