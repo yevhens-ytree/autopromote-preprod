@@ -316,7 +316,76 @@ const server = http.createServer(async (req, res) => {
                     mergeMethod: 'SQUASH'
                 });
 
-                const successMessage = `✅ PR #${prNumber} approved and set to auto-merge. GitHub will merge it once all checks pass.`;
+                const autoMergeMessage = `✅ PR #${prNumber} approved and set to auto-merge. Waiting for GitHub to merge it once all checks pass...`;
+                console.log(autoMergeMessage);
+                fullLog += autoMergeMessage + '\n';
+
+                // 5. Wait for PR to be merged
+                console.log("5. Waiting for PR to be merged (max 10 minutes)");
+                fullLog += "5. Waiting for PR to be merged (max 10 minutes)\n";
+
+                // GraphQL query to check PR merge status
+                const checkPrStatusQuery = `
+                    query CheckPullRequestStatus($owner: String!, $name: String!, $number: Int!) {
+                        repository(owner: $owner, name: $name) {
+                            pullRequest(number: $number) {
+                                state
+                                merged
+                                mergedAt
+                                mergeable
+                            }
+                        }
+                    }
+                `;
+
+                let prMerged = false;
+                const maxWaitMinutes = 10;
+                const checkIntervalSeconds = 30;
+                const maxAttempts = (maxWaitMinutes * 60) / checkIntervalSeconds; // 20 attempts
+
+                for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                    console.log(`Checking PR merge status (attempt ${attempt}/${maxAttempts})`);
+
+                    try {
+                        const prStatusData = await githubGraphQLRequest(checkPrStatusQuery, {
+                            owner: targetOwner,
+                            name: targetRepo,
+                            number: prNumber
+                        });
+
+                        const prStatus = prStatusData.repository.pullRequest;
+
+                        if (prStatus.merged) {
+                            prMerged = true;
+                            const mergedMessage = `✅ PR #${prNumber} successfully merged at ${prStatus.mergedAt}`;
+                            console.log(mergedMessage);
+                            fullLog += mergedMessage + '\n';
+                            break;
+                        } else if (prStatus.state === 'CLOSED') {
+                            throw new Error(`PR #${prNumber} was closed without being merged`);
+                        }
+
+                        // Wait before next check (except on last attempt)
+                        if (attempt < maxAttempts) {
+                            console.log(`PR not merged yet, waiting ${checkIntervalSeconds} seconds...`);
+                            await new Promise(resolve => setTimeout(resolve, checkIntervalSeconds * 1000));
+                        }
+                    } catch (statusError) {
+                        console.error(`Error checking PR status: ${statusError.message}`);
+                        // Continue trying unless it's the last attempt
+                        if (attempt === maxAttempts) {
+                            throw statusError;
+                        }
+                        // Wait before retry
+                        await new Promise(resolve => setTimeout(resolve, checkIntervalSeconds * 1000));
+                    }
+                }
+
+                if (!prMerged) {
+                    throw new Error(`PR #${prNumber} was not merged within ${maxWaitMinutes} minutes. Auto-merge is still enabled, but the server timed out waiting.`);
+                }
+
+                const successMessage = `🎉 Promotion completed successfully! PR #${prNumber} has been merged.`;
                 console.log(successMessage);
                 fullLog += successMessage + '\n';
 
