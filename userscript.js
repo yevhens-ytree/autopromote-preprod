@@ -4,7 +4,7 @@
 // @version      0.8
 // @description  Adds a button to trigger a promotion workflow from a GitHub repo page.
 // @author       You
-// @match        https://github.com/y-tree-limited/*/*
+// @match        https://github.com/y-tree-limited/**
 // @grant        GM_xmlhttpRequest
 // ==/UserScript==
 
