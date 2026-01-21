@@ -12,7 +12,7 @@
     'use strict';
 
     function initPromoteButton() {
-        const navBar = document.querySelector('nav.js-repo-nav ul.UnderlineNav-body');
+        const navBar = document.querySelector('nav[aria-label="Repository"] ul[role="list"]');
         if (!navBar) return;
 
         if (document.getElementById('promote-button-container')) return;
@@ -22,19 +22,26 @@
         if (!repoName) return; // Not on a repo page, skip initialization
 
 
-        const listItem = document.createElement('li');
-        listItem.id = 'promote-button-container';
-        listItem.className = 'd-inline-flex';
+        const templateItem = navBar.querySelector('li:last-child');
+        if (!templateItem) return;
 
-        const buttonElement = document.createElement('a');
-        buttonElement.className = 'UnderlineNav-item no-wrap js-responsive-underlinenav-item';
-        buttonElement.style.cursor = 'pointer';
-        buttonElement.innerHTML = `
-            <span class="UnderlineNav-octicon d-none d-sm-inline" style="margin-right: 4px;">🚀</span>
-            <span class="button-text-container">Check Preprod Version</span>
-        `;
-        const buttonText = buttonElement.querySelector('.button-text-container');
-        listItem.appendChild(buttonElement);
+        const listItem = templateItem.cloneNode(true);
+        listItem.id = 'promote-button-container';
+
+        const buttonElement = listItem.querySelector('a');
+        buttonElement.href = '#';
+        buttonElement.removeAttribute('aria-current');
+        buttonElement.dataset.reactNav = '';
+        buttonElement.dataset.turboFrame = '';
+
+        const iconSpan = buttonElement.querySelector('[data-component="icon"]');
+        if (iconSpan) iconSpan.innerHTML = '🚀';
+
+        const buttonText = buttonElement.querySelector('[data-component="text"]');
+        if (buttonText) buttonText.textContent = 'Check Preprod Version';
+
+        const counter = buttonElement.querySelector('[data-component="counter"]');
+        if (counter) counter.remove();
 
         // Handler for the second click, which runs the promotion.
         const handlePromoteClick = () => {
