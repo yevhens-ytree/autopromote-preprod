@@ -10,8 +10,8 @@
 
 1. **Set GH_TOKEN environment variable**
    ```bash
-   echo 'export GH_TOKEN=ghp_your_token_here' >> ~/.zshrc
-   source ~/.zshrc
+   echo 'export GH_TOKEN=ghp_your_token_here' >> ~/.zshenv
+   source ~/.zshenv
    ```
 
 2. **Run deployment script**

@@ -23,9 +23,13 @@ print_error() {
 # 1. GITHUB TOKEN CHECK
 # -----------------------------------------------------------------------------
 print_info "Checking GitHub token (GH_TOKEN)..."
+if [ -z "$GH_TOKEN" ] && [ -f "$HOME/.zshenv" ]; then
+    GH_TOKEN=$(zsh -c 'source "$HOME/.zshenv" >/dev/null 2>&1; printf "%s" "$GH_TOKEN"')
+    export GH_TOKEN
+fi
 if [ -z "$GH_TOKEN" ]; then
     print_error "Error: GH_TOKEN environment variable not set."
-    echo "Please ensure it's exported in your .zshrc/.bash_profile,"
+    echo "Please ensure it's exported in your ~/.zshenv,"
     echo "and you've restarted terminal, or run:"
     echo "export GH_TOKEN=ghp_... before running this script."
     exit 1
