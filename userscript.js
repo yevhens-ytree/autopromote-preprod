@@ -11,94 +11,55 @@
 (function() {
     'use strict';
 
-    const NAV_SELECTORS = [
-        'nav[aria-label="Repository"] ul[role="list"]',
-        'nav.UnderlineNav ul.UnderlineNav-body',
-        'ul.UnderlineNav-body'
-    ];
-
-    function isVisible(element) {
-        return element.offsetParent !== null || element.getClientRects().length > 0;
-    }
-
-    function findNavBar() {
-        const candidates = NAV_SELECTORS.flatMap(selector => Array.from(document.querySelectorAll(selector)));
-        return candidates.find(isVisible) || candidates[0] || null;
-    }
-
-    function findTemplateItem(navBar) {
-        const items = Array.from(navBar.children).filter(item =>
-            item.tagName === 'LI' &&
-            item.id !== 'promote-button-container' &&
-            !item.classList.contains('demoted')
-        );
-        return items[items.length - 1] || null;
-    }
-
-    function setIcon(buttonElement) {
-        const iconEl = buttonElement.querySelector('[data-component="icon"], svg.octicon');
-        if (!iconEl) return;
-
-        if (iconEl.tagName.toLowerCase() === 'svg') {
-            const span = document.createElement('span');
-            span.className = (iconEl.getAttribute('class') || '')
-                .split(/\s+/)
-                .filter(cls => cls && cls !== 'octicon' && !cls.startsWith('octicon-'))
-                .join(' ');
-            span.textContent = '🚀';
-            iconEl.replaceWith(span);
-            return;
-        }
-
-        iconEl.innerHTML = '🚀';
-    }
-
-    function findTextElement(buttonElement) {
-        return buttonElement.querySelector('[data-component="text"], span[data-content]');
-    }
+    const BUTTON_ID = 'promote-button-container';
 
     function setText(textElement, value) {
         if (!textElement) return;
         textElement.textContent = value;
-        if (textElement.hasAttribute('data-content')) textElement.setAttribute('data-content', value);
+    }
+
+    function createButton() {
+        const buttonElement = document.createElement('button');
+        buttonElement.id = BUTTON_ID;
+        buttonElement.type = 'button';
+        Object.assign(buttonElement.style, {
+            position: 'absolute',
+            top: '20px',
+            left: '300px',
+            zIndex: '9999',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '5px 12px',
+            font: 'inherit',
+            fontSize: '14px',
+            lineHeight: '20px',
+            color: '#1f2328',
+            background: '#f6f8fa',
+            border: '1px solid rgba(31,35,40,0.15)',
+            borderRadius: '6px',
+            cursor: 'pointer'
+        });
+
+        const icon = document.createElement('span');
+        icon.textContent = '🚀';
+        buttonElement.append(icon);
+
+        const buttonText = document.createElement('span');
+        buttonElement.append(buttonText);
+
+        return { buttonElement, buttonText };
     }
 
     function initPromoteButton() {
-        const navBar = findNavBar();
-        if (!navBar) return;
-
-        if (document.getElementById('promote-button-container')) return;
+        if (document.getElementById(BUTTON_ID)) return;
 
         const repoNameMatch = window.location.pathname.match(/^\/([^/]+)\/([^/]+)/);
         const repoName = repoNameMatch ? `${repoNameMatch[1]}/${repoNameMatch[2]}` : '';
         if (!repoName) return; // Not on a repo page, skip initialization
 
-        const templateItem = findTemplateItem(navBar);
-        if (!templateItem) return;
-
-        const listItem = templateItem.cloneNode(true);
-        listItem.id = 'promote-button-container';
-
-        const buttonElement = listItem.querySelector('a');
-        if (!buttonElement) return;
-
-        buttonElement.href = '#';
-        buttonElement.removeAttribute('id');
-        buttonElement.removeAttribute('aria-current');
-        buttonElement.removeAttribute('aria-labelledby');
-        buttonElement.classList.remove('selected');
-        buttonElement.dataset.reactNav = '';
-        buttonElement.dataset.turboFrame = '';
-
-        setIcon(buttonElement);
-
-        const buttonText = findTextElement(buttonElement);
-        if (!buttonText) return;
-        buttonText.classList.remove('d-none');
+        const { buttonElement, buttonText } = createButton();
         setText(buttonText, 'Check Preprod Version');
-
-        const counter = buttonElement.querySelector('[data-component="counter"], .Counter');
-        if (counter) counter.remove();
 
         // Handler for the second click, which runs the promotion.
         const handlePromoteClick = () => {
@@ -157,7 +118,7 @@
                                 setText(buttonText, `Up to date (${latest})`);
                                 buttonElement.style.color = '#2da44e';
                                 buttonElement.style.pointerEvents = 'none'; // Keep disabled
-                                listItem.title = 'The current version on preprod matches the latest available release.';
+                                buttonElement.title = 'The current version on preprod matches the latest available release.';
                             } else {
                                 setText(buttonText, `Promote ${latest} (pre: ${current})`);
                                 buttonElement.style.pointerEvents = 'auto'; // Re-enable for promote click
@@ -187,7 +148,7 @@
         // Assign the initial click handler
         buttonElement.onclick = handleCheckVersionClick;
 
-        navBar.append(listItem);
+        document.body.append(buttonElement);
     }
 
     // This observer is critical for navigating GitHub without full page reloads (PJAX)
