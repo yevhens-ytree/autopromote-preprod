@@ -24,8 +24,8 @@
         buttonElement.type = 'button';
         Object.assign(buttonElement.style, {
             position: 'absolute',
-            top: '20px',
-            left: '300px',
+            top: '60px',
+            right: '10px',
             zIndex: '9999',
             display: 'inline-flex',
             alignItems: 'center',
@@ -34,8 +34,8 @@
             font: 'inherit',
             fontSize: '14px',
             lineHeight: '20px',
-            color: '#1f2328',
-            background: '#f6f8fa',
+            color: 'inherit',
+            background: 'transparent',
             border: '1px solid rgba(31,35,40,0.15)',
             borderRadius: '6px',
             cursor: 'pointer'
